@@ -1,6 +1,5 @@
 #pragma once
 #include "root.unity.h"
-#include <unistd.h>
 
 typedef struct {
 	char *buffer;
@@ -51,10 +50,8 @@ int main(void) {
 	uintptr pages = 100000;
 	print(newString("doing stuff\n"));
 	uintptr *mem = alloc_pages(pages);
-    sleep(4);
 	for (uintptr i = 0; i < ((page_size * pages) / 8); i++) {
 		mem[i] = 0xffffffffffffffff;
 	}
-    sleep(4);
 	return 0;
 }
