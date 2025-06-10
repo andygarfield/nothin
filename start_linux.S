@@ -1,20 +1,20 @@
 .intel_syntax noprefix
 .text
-    .globl _start, syscall5, syscall6, sleepytime
+    .globl syscall5, syscall6, sleepytime
 
-    _start:
-        mov rbp, 0
-        pop rdi
-        mov rsi, rsp
-        and rsp, -16
-        call main
+    //_start:
+    //    mov rbp, 0
+    //    pop rdi
+    //    mov rsi, rsp
+    //    and rsp, -16
+    //    call main
 
-        mov rdi, rax
-        mov rax, 1
-        syscall
+    //    mov rdi, rax
+    //    mov rax, 1
+    //    syscall
 
-        ret /* should never be reached, but if the OS somehow fails
-               to kill us, it will cause a segmentation fault */
+    //    ret /* should never be reached, but if the OS somehow fails
+    //           to kill us, it will cause a segmentation fault */
 
     // this can be used for syscalls with 1-5 arguments
     syscall5:

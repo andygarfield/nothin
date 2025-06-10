@@ -1,10 +1,10 @@
 .POSIX:
 CLANG_FLAGS = -std=c99 -O0 -Wall -Werror -nostdlib -lSystem -fdelete-null-pointer-checks
-GCC_FLAGS = -s -Os -fdata-sections -Wl,-gc-sections -nostdlib -Wl,--gc-sections \
+GCC_FLAGS = -s -Os -fdata-sections -Wl,-gc-sections -Wl,--gc-sections \
 	-fno-unwind-tables -fno-asynchronous-unwind-tables -fno-builtin -std=c99 \
 	-Wall -Werror -Wa,--noexecstack -fno-stack-protector \
 	-fdelete-null-pointer-checks -static -Wl,-nmagic
-GCC_DB_FLAGS = -O0 -nostdlib -ggdb -z noexecstack
+GCC_DB_FLAGS = -O0 -ggdb -z noexecstack
 SRC=$(wildcard *.c)
 
 schema_infer_mac: start_mac.S $(SRC)
