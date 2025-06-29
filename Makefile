@@ -3,7 +3,7 @@ CLANG_FLAGS = -std=c99 -O0 -Wall -Werror -nostdlib -lSystem -fdelete-null-pointe
 GCC_FLAGS = -s -Os -fdata-sections -Wl,-gc-sections -Wl,--gc-sections \
 	-fno-unwind-tables -fno-asynchronous-unwind-tables -fno-builtin -std=c99 \
 	-Wall -Werror -Wa,--noexecstack -fno-stack-protector \
-	-fdelete-null-pointer-checks -static -Wl,-nmagic
+	-fdelete-null-pointer-checks -static
 GCC_DB_FLAGS = -O0 -ggdb -z noexecstack
 SRC=$(wildcard *.c)
 

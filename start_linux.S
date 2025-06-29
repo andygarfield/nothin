@@ -1,17 +1,17 @@
 .intel_syntax noprefix
 .text
-    .globl syscall5, syscall6, sleepytime
+    .globl __ehdr_start, syscall5, syscall6, sleepytime
 
-    //_start:
-    //    mov rbp, 0
-    //    pop rdi
-    //    mov rsi, rsp
-    //    and rsp, -16
-    //    call main
+    __ehdr_start:
+        mov rbp, 0
+        pop rdi
+        mov rsi, rsp
+        and rsp, -16
+        call main
 
-    //    mov rdi, rax
-    //    mov rax, 1
-    //    syscall
+        mov rdi, rax
+        mov rax, 1
+        syscall
 
     //    ret /* should never be reached, but if the OS somehow fails
     //           to kill us, it will cause a segmentation fault */

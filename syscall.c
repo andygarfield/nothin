@@ -14,8 +14,8 @@
 #define MAP_ANON 0x20 /* Don't use a file.  */
 #endif
 
-void *syscall5(void *arg1, void *arg2, void *arg3, void *arg4, void *arg5, void *number);
-void *syscall6(void *arg1, void *arg2, void *arg3, void *arg4, void *arg5, void *arg6, void *number);
+volatile void *syscall5(void *arg1, void *arg2, void *arg3, void *arg4, void *arg5, void *number);
+volatile void *syscall6(void *arg1, void *arg2, void *arg3, void *arg4, void *arg5, void *arg6, void *number);
 
 /*
  * Protections are chosen from these bits, or-ed together
