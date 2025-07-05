@@ -1,17 +1,19 @@
 #pragma once
+#include "alloc.c"
 #include "root.unity.h"
-//#include <stdio.h>
+#include <stdio.h>
 
-int main(void) {
-	uintptr pages = 100000;
-	print(newString("doing stuff\n"));
-	alloc_pages(pages);
-	//for (uintptr i = 0; i < ((PAGE_SIZE * 100000) / 8); i++) {
-//pr//intf("%lu\n", i);
-	//	mem[i] = 0xffffffffffffffff;
-	//}
-	for (uintptr i = 0; i < (1100000000); i++) {
-		sleepytime();
-	}
+int main(int argc, char **argv) {
+	u64 pages = 1;
+	u64 *mem = alloc_pages(pages);
+	u64 fd = open_(argv[1], O_RDONLY, 0);
+
+	u64 readBytes;
+	do {
+		readBytes = read_(fd, mem, PAGE_SIZE);
+		String str = {.buffer = (char *)mem, .len = readBytes};
+		print(str);
+	} while (readBytes);
+
 	return 0;
 }

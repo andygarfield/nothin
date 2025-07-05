@@ -13,8 +13,8 @@
         mov rax, 1
         syscall
 
-    //    ret /* should never be reached, but if the OS somehow fails
-    //           to kill us, it will cause a segmentation fault */
+        ret /* should never be reached, but if the OS somehow fails
+               to kill us, it will cause a segmentation fault */
 
     // this can be used for syscalls with 1-5 arguments
     syscall5:

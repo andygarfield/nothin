@@ -1,0 +1,13 @@
+#pragma once
+#include "../root.unity.h"
+
+#ifdef __APPLE__
+#define SYSCALL_WRITE 0x2000004
+#endif
+#ifdef __linux__
+#define SYSCALL_WRITE 0x1
+#endif
+
+internal i64 write_(int fd, void const *data, u64 nbytes) {
+	return (i64)syscall5(INT2VOIDP(fd), (void *)data, UINT2VOIDP(nbytes), 0, 0, (void *)SYSCALL_WRITE);
+}
