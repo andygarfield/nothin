@@ -10,3 +10,9 @@ typedef long int i64;	       /* ssize_t */
 #define INT2VOIDP(i) (void *)(i64)(i)
 
 void sleepytime();
+
+void sleepALot() {
+    for (u64 i = 0; i < 100000000; i++) {
+        sleepytime();
+    }
+}
