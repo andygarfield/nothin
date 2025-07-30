@@ -1,7 +1,7 @@
 #pragma once
 #include "alloc.c"
 #include "root.unity.h"
-#include <stdio.h>
+// #include <stdio.h>
 
 #define JSON_NULL 0
 #define JSON_TRUE 1
@@ -14,12 +14,6 @@
 #define bool u64
 #define false 0
 #define true 1
-
-typedef struct {
-	String name;
-	u64 jsonType;
-
-} JsonField;
 
 int main(int argc, char **argv) {
 	// 2^25 pages or 128GiB (the OS shouldn't allocate this entire chunk for real
@@ -41,11 +35,10 @@ int main(int argc, char **argv) {
 
 	u64 fd = open_(argv[1], O_RDONLY, 0);
 
-	print(newString(""));
 	u64 readBytes;
 	i64 stringStart = -1;
 	for (u64 i = 0; i < fileBufferPages; i++) {
-		printf("page num %lu\n", i);
+		// printf("page num %lu\n", i);
 		readBytes = read_(fd, fileBuffer, PAGE_SIZE);
 		if (!readBytes) {
 			break;
@@ -54,7 +47,8 @@ int main(int argc, char **argv) {
 		// String str = {.buffer = (char *)fileBuffer, .len = readBytes};
 		u64 startIndex = fileBuffer - startPos;
 		u64 j = startIndex;
-		for (; j < (startIndex + readBytes); j++) {
+		u64 maxPos = startIndex + readBytes;
+		for (; j < maxPos; j++) {
 			switch (startPos[j]) {
 			case '\n':
 			case '\t':
@@ -72,6 +66,8 @@ int main(int argc, char **argv) {
 
 					stringStart = -1;
 				}
+			case '{':
+                
 			default:
 				break;
 			}
@@ -79,13 +75,14 @@ int main(int argc, char **argv) {
 
 		fileBuffer += PAGE_SIZE;
 	}
+	// print(newString(""));
 
 	for (u64 i = 0; i < a.len; i++) {
 		RefString s = a.p[i];
-		printf("start %lu; len %lu\n", s.start, s.len);
+		// printf("start %lu; len %lu\n", s.start, s.len);
 		String js = {.buffer = startPos + s.start, .len = s.len};
 		print(js);
-		printf("\n");
+		print(newString("\n"));
 	}
 
 	return 0;
