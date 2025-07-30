@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
 
-number_chars = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "E", "e", "-", "+"}
-
 
 @dataclass
 class StringRef:
@@ -12,14 +10,19 @@ class StringRef:
 
 class ParseState(int, Enum):
     EXPECTING_VALUE = 0
-    BEFORE_OBJECT_KEY = 1
-    AFTER_OBJECT_KEY = 2
-    AFTER_OBJECT_VALUE = 3
-    AFTER_ARRAY_VALUE = 4
-    AFTER_NUM_SIGN = 5
-    AFTER_NUM_DECIMAL_POINT = 6
-    AFTER_NUM_E = 7
-    EOF = 8
+    AFTER_OBJECT_VALUE = 1
+    AFTER_ARRAY_VALUE = 2
+    AFTER_OBJECT_START = 3
+    AFTER_OBJECT_KEY = 4
+    AFTER_KEY_STRING_CHAR = 5
+    AFTER_VAL_STRING_CHAR = 6
+    AFTER_NUM_SIGN = 7
+    AFTER_NUM_PRE_DECIMAL_DIGIT = 8
+    AFTER_NUM_DECIMAL_POINT = 9
+    AFTER_NUM_POST_DECIMAL_DIGIT = 10
+    AFTER_NUM_E = 11
+    AFTER_NUM_E_SIGN = 12
+    AFTER_NUM_E_DIGIT = 13
 
 
 class TokenType(int, Enum):
@@ -33,14 +36,6 @@ class TokenType(int, Enum):
     OBJECT_END = 7
     ARRAY_START = 8
     ARRAY_END = 9
-    COLON = 10
-    COMMA = 11
-    WHITESPACE = 12
-    DIGITS = 13
-    PLUS = 14
-    MINUS = 15
-    DECIMAL_POINT = 16
-    END = 17
 
 
 class Container(int, Enum):
@@ -48,50 +43,64 @@ class Container(int, Enum):
     OBJECT = 1
 
 
-valid_tokens = {
-    ParseState.EXPECTING_VALUE: {
-        TokenType.STRING,
-        TokenType.NUMBER,
-        TokenType.TRUE,
-        TokenType.FALSE,
-        TokenType.NULL,
-        TokenType.OBJECT_START,
-        TokenType.ARRAY_START,
-        TokenType.WHITESPACE,
-        TokenType.PLUS,
-        TokenType.MINUS,
-    },
-    ParseState.BEFORE_OBJECT_KEY: {
-        TokenType.STRING,
-        TokenType.WHITESPACE,
-        TokenType.OBJECT_END,
-    },
-    ParseState.AFTER_OBJECT_KEY: {
-        TokenType.COLON,
-        TokenType.WHITESPACE,
-    },
-    ParseState.AFTER_OBJECT_VALUE: {
-        TokenType.COMMA,
-        TokenType.WHITESPACE,
-        TokenType.OBJECT_END,
-    },
-    ParseState.AFTER_ARRAY_VALUE: {
-        TokenType.COMMA,
-        TokenType.WHITESPACE,
-        TokenType.ARRAY_END,
-    },
-    ParseState.AFTER_NUM_SIGN: {
-        TokenType.DIGITS,
-    },
-    ParseState.AFTER_NUM_DECIMAL_POINT: {
-        TokenType.DIGITS,
-    },
-    ParseState.AFTER_NUM_E: {
-        TokenType.DIGITS,
-        TokenType.MINUS,
-        TokenType.PLUS,
-    },
+WHITESPACE = {" ", "\t", "\r", "\n"}
+COMMA = {","}
+COLON = {":"}
+DOUBLE_QUOTE = {'"'}
+ONE_THROUGH_NINE = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"}
+DIGIT = {"0"} | ONE_THROUGH_NINE
+DECIMAL_POINT = {"."}
+NUM_EXPONENT = {"E"}
+NUM_SIGN = {"-", "+"}
+VALUE_START_CHARS = DIGIT | DOUBLE_QUOTE | {"{", "[", "t", "f", "n", "+", "-"}
+
+valid_chars = {
+    ParseState.EXPECTING_VALUE: VALUE_START_CHARS | WHITESPACE,
+    # TODO: maybe these should just be a single thing after all
+    ParseState.AFTER_OBJECT_VALUE: COMMA | WHITESPACE,
+    ParseState.AFTER_ARRAY_VALUE: COMMA | WHITESPACE,
+    ParseState.AFTER_OBJECT_START: DOUBLE_QUOTE | WHITESPACE,
+    ParseState.AFTER_OBJECT_KEY: COLON | WHITESPACE,
+    ParseState.AFTER_KEY_STRING_CHAR: DOUBLE_QUOTE,  # special
+    ParseState.AFTER_VAL_STRING_CHAR: DOUBLE_QUOTE,  # special
+    ParseState.AFTER_NUM_SIGN: DIGIT,
+    ParseState.AFTER_NUM_PRE_DECIMAL_DIGIT: DIGIT | DECIMAL_POINT | NUM_EXPONENT,
+    ParseState.AFTER_NUM_DECIMAL_POINT: DIGIT,
+    ParseState.AFTER_NUM_POST_DECIMAL_DIGIT: DIGIT | NUM_EXPONENT,
+    ParseState.AFTER_NUM_E: NUM_SIGN | DIGIT,
+    ParseState.AFTER_NUM_E_SIGN: DIGIT,
+    ParseState.AFTER_NUM_E_DIGIT: DIGIT | WHITESPACE,  # special
 }
+# ParseState.BEFORE_OBJECT_KEY: {
+#    TokenType.STRING,
+#    TokenType.WHITESPACE,
+#    TokenType.OBJECT_END,
+# },
+# ParseState.AFTER_OBJECT_KEY: {
+#    TokenType.COLON,
+#    TokenType.WHITESPACE,
+# },
+# ParseState.AFTER_OBJECT_VALUE: {
+#    TokenType.COMMA,
+#    TokenType.WHITESPACE,
+#    TokenType.OBJECT_END,
+# },
+# ParseState.AFTER_ARRAY_VALUE: {
+#    TokenType.COMMA,
+#    TokenType.WHITESPACE,
+#    TokenType.ARRAY_END,
+# },
+# ParseState.AFTER_NUM_SIGN: {
+#    TokenType.DIGITS,
+# },
+# ParseState.AFTER_NUM_DECIMAL_POINT: {
+#    TokenType.DIGITS,
+# },
+# ParseState.AFTER_NUM_E: {
+#    TokenType.DIGITS,
+#    TokenType.MINUS,
+#    TokenType.PLUS,
+# },
 
 
 @dataclass
@@ -101,21 +110,16 @@ class Token:
 
 
 def main():
-    # with open(sys.argv[1]) as f:
-    #    for token in tokenize(f.read()):
-    #        print(token)
+    tokenize("{}")
 
-    for token in tokenize('{"foo": null, "f": false, "dasd": 123.332}'):
-        print(token)
+    pass
 
 
 def tokenize(buf: str):
-    skip_to = -1
-    string_start = -1
-    number_start = -1
-    prev_char = ""
     container_stack: list[Container] = []
     parse_state: ParseState = ParseState.EXPECTING_VALUE
+    value_start: int = -1
+    i: int = 0
 
     def find_container_parse_state():
         global parse_state
@@ -125,94 +129,108 @@ def tokenize(buf: str):
             case Container.OBJECT:
                 parse_state = ParseState.AFTER_OBJECT_VALUE
 
-    # TODO: error if this is True and we've hit EOF
-    for i, char in enumerate(buf):
-        if skip_to > i:
-            continue
+    while i < len(buf):
+        char = buf[i]
 
-        # if number_start >= 0 and char in number_chars:
-        #    continue
+        # depending on the state which the parser is in, there are a finite
+        # amount of valid characters
+        if char not in valid_chars[parse_state]:
+            yield Token(token_type=TokenType.ERROR, data=None)
 
-        # ord_num = ord(char)
-        # if 48 <= ord_num <= 57:
-        #    if number_start == -1:
-        #        number_start = i
-        #        continue
-        # elif number_start >= 0:
-        #    yield Token(token_type=TokenType.NUMBER, data=StringRef(start_index=number_start, len=i - number_start))
-        #    number_start = -1
+        i += 1
 
-        match char:
-            case "{":
-                assert TokenType.OBJECT_START in valid_tokens[parse_state]
-                yield Token(token_type=TokenType.OBJECT_START, data=None)
-                parse_state = ParseState.BEFORE_OBJECT_KEY
-                container_stack.append(Container.OBJECT)
-            case "}":
-                assert TokenType.OBJECT_END in valid_tokens[parse_state]
-                yield Token(token_type=TokenType.OBJECT_END, data=None)
-                _ = container_stack.pop()
-                if len(container_stack) == 0:
-                    # TODO: may not need this token
-                    yield Token(TokenType.END, data=None)
-                    parse_state = ParseState.EOF
-                find_container_parse_state()
-            case '"':
-                assert TokenType.STRING in valid_tokens[parse_state]
-                if string_start >= 0 and prev_char != "\\":
-                    yield Token(
-                        token_type=TokenType.STRING,
-                        data=StringRef(start_index=string_start, len=i - string_start),
-                    )
-                    parse_state = ParseState.BEFORE_OBJECT_KEY
-                    string_start = -1
-                else:
-                    skip_to = i + 2
-                    string_start = i + 1
-            case "t" | "n":
-                assert TokenType.STRING in valid_tokens[parse_state]
-                if len(buf) < i + 4:
-                    yield Token(token_type=TokenType.ERROR, data=None)
-                val = buf[i : i + 4]
-                match val:
-                    case "true":
-                        skip_to = i + 4
-                        yield Token(token_type=TokenType.TRUE, data=None)
-                    case "null":
-                        skip_to = i + 4
-                        yield Token(token_type=TokenType.NULL, data=None)
-                    case _:
-                        yield Token(token_type=TokenType.ERROR, data=StringRef(start_index=i, len=0))
+    if len(container_stack) != 0:
+        # TODO: may not error here as we can just keep parsing new values after
+        # others end. JQ does this for instance.
+        yield Token(token_type=TokenType.ERROR, data=None)
 
-            case "f":
-                if len(buf) < i + 5:
-                    yield Token(token_type=TokenType.ERROR, data=None)
-                val = buf[i : i + 5]
-                if val == "false":
-                    skip_to = i + 5
-                    yield Token(token_type=TokenType.FALSE, data=None)
-                else:
-                    yield Token(token_type=TokenType.ERROR, data=None)
-            case ":":
-                yield Token(token_type=TokenType.COLON, data=None)
-                parse_state = ParseState.EXPECTING_VALUE
-            case ",":
-                yield Token(token_type=TokenType.COMMA, data=None)
-            case "[":
-                yield Token(token_type=TokenType.ARRAY_START, data=None)
-                parse_state = ParseState.EXPECTING_VALUE
-                container_stack.append(Container.ARRAY)
-            case "]":
-                yield Token(token_type=TokenType.ARRAY_END, data=None)
-                if len(container_stack) == 0:
-                    # TODO: may not need this token
-                    yield Token(TokenType.END, data=None)
-                    parse_state = ParseState.EOF
-                find_container_parse_state()
-                _ = container_stack.pop()
-            case _:
-                pass
-        prev_char = char
+    #    if skip_to > i:
+    #        continue
+
+    # if number_start >= 0 and char in number_chars:
+    #    continue
+
+    # ord_num = ord(char)
+    # if 48 <= ord_num <= 57:
+    #    if number_start == -1:
+    #        number_start = i
+    #        continue
+    # elif number_start >= 0:
+    #    yield Token(token_type=TokenType.NUMBER, data=StringRef(start_index=number_start, len=i - number_start))
+    #    number_start = -1
+
+
+#        match char:
+#            case "{":
+#                assert TokenType.OBJECT_START in valid_tokens[parse_state]
+#                yield Token(token_type=TokenType.OBJECT_START, data=None)
+#                parse_state = ParseState.BEFORE_OBJECT_KEY
+#                container_stack.append(Container.OBJECT)
+#            case "}":
+#                assert TokenType.OBJECT_END in valid_tokens[parse_state]
+#                yield Token(token_type=TokenType.OBJECT_END, data=None)
+#                _ = container_stack.pop()
+#                if len(container_stack) == 0:
+#                    # TODO: may not need this token
+#                    yield Token(TokenType.END, data=None)
+#                    parse_state = ParseState.EOF
+#                find_container_parse_state()
+#            case '"':
+#                assert TokenType.STRING in valid_tokens[parse_state]
+#                if string_start >= 0 and prev_char != "\\":
+#                    yield Token(
+#                        token_type=TokenType.STRING,
+#                        data=StringRef(start_index=string_start, len=i - string_start),
+#                    )
+#                    parse_state = ParseState.BEFORE_OBJECT_KEY
+#                    string_start = -1
+#                else:
+#                    skip_to = i + 2
+#                    string_start = i + 1
+#            case "t" | "n":
+#                assert TokenType.STRING in valid_tokens[parse_state]
+#                if len(buf) < i + 4:
+#                    yield Token(token_type=TokenType.ERROR, data=None)
+#                val = buf[i : i + 4]
+#                match val:
+#                    case "true":
+#                        skip_to = i + 4
+#                        yield Token(token_type=TokenType.TRUE, data=None)
+#                    case "null":
+#                        skip_to = i + 4
+#                        yield Token(token_type=TokenType.NULL, data=None)
+#                    case _:
+#                        yield Token(token_type=TokenType.ERROR, data=StringRef(start_index=i, len=0))
+#
+#            case "f":
+#                if len(buf) < i + 5:
+#                    yield Token(token_type=TokenType.ERROR, data=None)
+#                val = buf[i : i + 5]
+#                if val == "false":
+#                    skip_to = i + 5
+#                    yield Token(token_type=TokenType.FALSE, data=None)
+#                else:
+#                    yield Token(token_type=TokenType.ERROR, data=None)
+#            case ":":
+#                yield Token(token_type=TokenType.COLON, data=None)
+#                parse_state = ParseState.EXPECTING_VALUE
+#            case ",":
+#                yield Token(token_type=TokenType.COMMA, data=None)
+#            case "[":
+#                yield Token(token_type=TokenType.ARRAY_START, data=None)
+#                parse_state = ParseState.EXPECTING_VALUE
+#                container_stack.append(Container.ARRAY)
+#            case "]":
+#                yield Token(token_type=TokenType.ARRAY_END, data=None)
+#                if len(container_stack) == 0:
+#                    # TODO: may not need this token
+#                    yield Token(TokenType.END, data=None)
+#                    parse_state = ParseState.EOF
+#                find_container_parse_state()
+#                _ = container_stack.pop()
+#            case _:
+#                pass
+#        prev_char = char
 
 
 if __name__ == "__main__":
