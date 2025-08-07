@@ -47,8 +47,12 @@ valid_new_states: dict[
     (ParseState.SCALAR, Container.ARRAY): {ParseState.ARRAY_END, ParseState.COMMA},
     (ParseState.COMMA, Container.ARRAY): {ParseState.SCALAR, ParseState.ARRAY_START, ParseState.OBJECT_START},
     (ParseState.ARRAY_END, Container.OBJECT): {ParseState.COMMA, ParseState.OBJECT_END},
+    (ParseState.ARRAY_END, Container.ARRAY): {ParseState.COMMA, ParseState.ARRAY_END},
+    (ParseState.ARRAY_END, None): {ParseState.END},
     (ParseState.OBJECT_START, Container.OBJECT): {ParseState.OBJECT_KEY, ParseState.OBJECT_END},
     (ParseState.OBJECT_END, Container.OBJECT): {ParseState.COMMA, ParseState.OBJECT_END},
+    (ParseState.OBJECT_END, Container.ARRAY): {ParseState.COMMA, ParseState.ARRAY_END},
+    (ParseState.OBJECT_END, None): {ParseState.END},
     (ParseState.OBJECT_KEY, Container.OBJECT): {ParseState.COLON},
     (ParseState.COLON, Container.OBJECT): {ParseState.SCALAR, ParseState.ARRAY_START, ParseState.OBJECT_START},
     (ParseState.SCALAR, Container.OBJECT): {ParseState.COMMA, ParseState.OBJECT_END},
@@ -76,6 +80,7 @@ NUM_SIGN = {"-", "+"}
 ONE_THROUGH_NINE = {"1", "2", "3", "4", "5", "6", "7", "8", "9"}
 DIGIT = {"0"} | ONE_THROUGH_NINE
 NUM_CHARS = DIGIT | NUM_SIGN | NUM_EXPONENT | DECIMAL_POINT
+NON_DIGIT_NUM_CHAR = NUM_CHARS - DIGIT
 
 
 class ParseError(Exception): ...
@@ -88,8 +93,9 @@ class Token:
 
 
 def main():
-    buf = '{"23": 233, "asd": "sadasdfsdgdsgadfasdg", "fda": {"sd": [3, 12,3], "asd": 2}}'
-
+    with open("/Users/andy/Downloads/twitter.json") as f:
+        buf = f.read()
+    # for buf in ["]:
     for t in tokenize(buf):
         if isinstance(t.data, StringRef):
             print(f"{t.token_type} - `{buf[t.data.start_index:t.data.start_index+t.data.len]}`")
@@ -148,6 +154,7 @@ def tokenize(buf: str) -> Generator[Token, None, None]:
                 elif ParseState.OBJECT_KEY in possible_states:
                     new_state = ParseState.OBJECT_KEY
                 else:
+                    breakpoint()
                     yield Token(TokenType.ERROR)
                     raise ParseError(i)
 
@@ -181,7 +188,7 @@ def tokenize(buf: str) -> Generator[Token, None, None]:
                     raise ParseError(i)
 
                 new_state = ParseState.SCALAR
-                i += 4
+                i += 3
             case "f":
                 if ParseState.SCALAR not in possible_states:
                     yield Token(TokenType.ERROR)
@@ -199,8 +206,8 @@ def tokenize(buf: str) -> Generator[Token, None, None]:
                     raise ParseError(i)
 
                 new_state = ParseState.SCALAR
-                i += 5
-            case "-" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9":
+                i += 4
+            case "-" | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9":
                 if ParseState.SCALAR not in possible_states:
                     yield Token(TokenType.ERROR)
                     raise ParseError(i)
@@ -249,7 +256,7 @@ def parse_string(buf: str, start: int) -> int:
 
 
 def parse_number(buf: str, start: int) -> int:
-    # TODO: actually make a good inplementation of this
+    # TODO: Maybe actually validate the number. Progress in the commented out code below.
     i = start
     while i < len(buf):
         char = buf[i]
@@ -260,6 +267,57 @@ def parse_number(buf: str, start: int) -> int:
         i += 1
 
     return i
+
+
+# class NumberState(int, Enum):
+#    NEGATIVE_SIGN = 0
+#    WHOLE_NUMBER = 1
+#    AFTER_DECIMAL_NUMBER = 2
+#    EXPONENT = 3
+#    EXPONENT_SIGN = 4
+#    POWER = 5
+#
+#
+# def parse_number(buf: str, start: int) -> int:
+#    state = 0
+#    i = start
+#
+#    negative = False
+#    breakpoint()
+#    while i < len(buf):
+#        char = buf[i]
+#        if i == 0:
+#            state += 1
+#            if char == "-":
+#                negative = True
+#                i += 1
+#                continue
+#            else:
+#                if char not in DIGIT:
+#                    return -1
+#        elif (i == 1 and not negative) or (i == 2 and negative):
+#            if buf[i - 1] == "0":
+#                return -1
+#
+#        if char == ".":
+#            if NumberState(state) == NumberState.WHOLE_NUMBER:
+#                state += 1
+#            else:
+#                return -1
+#
+#        if char in NON_DIGIT_NUM_CHAR and buf[i - 1] == ".":
+#            return -1
+#
+#        if char not in NUM_CHARS:
+#            if buf[i - 1] in NON_DIGIT_NUM_CHAR:
+#                return -1
+#            return i
+#
+#        i += 1
+#
+#    if buf[i - 1] in NON_DIGIT_NUM_CHAR:
+#        return -1
+#    return i
 
 
 if __name__ == "__main__":
