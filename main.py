@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Generator
 from dataclasses import dataclass
 from enum import Enum
@@ -11,7 +12,7 @@ class StringRef:
 
 class ParseState(int, Enum):
     START = 0
-    SCALAR = 1
+    PRIMITIVE = 1
     COMMA = 2
     COLON = 3
     ARRAY_START = 4
@@ -31,16 +32,16 @@ valid_new_states: dict[
     tuple[ParseState, Container | None],
     set[ParseState],
 ] = {
-    (ParseState.START, None): {ParseState.SCALAR, ParseState.ARRAY_START, ParseState.OBJECT_START},
-    (ParseState.SCALAR, None): {ParseState.END},
+    (ParseState.START, None): {ParseState.PRIMITIVE, ParseState.ARRAY_START, ParseState.OBJECT_START},
+    (ParseState.PRIMITIVE, None): {ParseState.END},
     (ParseState.ARRAY_START, Container.ARRAY): {
-        ParseState.SCALAR,
+        ParseState.PRIMITIVE,
         ParseState.ARRAY_START,
         ParseState.OBJECT_START,
         ParseState.ARRAY_END,
     },
-    (ParseState.SCALAR, Container.ARRAY): {ParseState.ARRAY_END, ParseState.COMMA},
-    (ParseState.COMMA, Container.ARRAY): {ParseState.SCALAR, ParseState.ARRAY_START, ParseState.OBJECT_START},
+    (ParseState.PRIMITIVE, Container.ARRAY): {ParseState.ARRAY_END, ParseState.COMMA},
+    (ParseState.COMMA, Container.ARRAY): {ParseState.PRIMITIVE, ParseState.ARRAY_START, ParseState.OBJECT_START},
     (ParseState.ARRAY_END, Container.OBJECT): {ParseState.COMMA, ParseState.OBJECT_END},
     (ParseState.ARRAY_END, Container.ARRAY): {ParseState.COMMA, ParseState.ARRAY_END},
     (ParseState.ARRAY_END, None): {ParseState.END},
@@ -49,8 +50,8 @@ valid_new_states: dict[
     (ParseState.OBJECT_END, Container.ARRAY): {ParseState.COMMA, ParseState.ARRAY_END},
     (ParseState.OBJECT_END, None): {ParseState.END},
     (ParseState.OBJECT_KEY, Container.OBJECT): {ParseState.COLON},
-    (ParseState.COLON, Container.OBJECT): {ParseState.SCALAR, ParseState.ARRAY_START, ParseState.OBJECT_START},
-    (ParseState.SCALAR, Container.OBJECT): {ParseState.COMMA, ParseState.OBJECT_END},
+    (ParseState.COLON, Container.OBJECT): {ParseState.PRIMITIVE, ParseState.ARRAY_START, ParseState.OBJECT_START},
+    (ParseState.PRIMITIVE, Container.OBJECT): {ParseState.COMMA, ParseState.OBJECT_END},
     (ParseState.COMMA, Container.OBJECT): {ParseState.OBJECT_KEY},
 }
 
@@ -88,12 +89,14 @@ class Token:
 
 
 def main():
-    with open("/Users/andy/Downloads/twitter.json") as f:
+    with open(sys.argv[1]) as f:
         buf = f.read()
     # for buf in ["]:
     t_count = 0
     for token in tokenize(buf):
-        print(token)
+        print(token, end="")
+        if token.data:
+            print(f' - "{buf[token.data.start_index:token.data.start_index+token.data.len]}"')
         t_count += 1
 
     print(t_count)
@@ -149,28 +152,27 @@ def tokenize(buf: str) -> Generator[Token, None, None]:
                     yield Token(TokenType.ERROR)
                     raise ParseError(i)
             case '"':
-                if ParseState.SCALAR in possible_states:
-                    new_state = ParseState.SCALAR
+                if ParseState.PRIMITIVE in possible_states:
+                    new_state = ParseState.PRIMITIVE
                 elif ParseState.OBJECT_KEY in possible_states:
                     new_state = ParseState.OBJECT_KEY
                 else:
-                    breakpoint()
                     yield Token(TokenType.ERROR)
                     raise ParseError(i)
 
-                end_quote_index = parse_string(buf, i)
+                end_quote_index = find_end_quote_index(buf, i)
                 if end_quote_index == -1:
                     yield Token(TokenType.ERROR)
                     raise ParseError(i)
 
                 yield Token(
-                    TokenType.STRING if new_state == ParseState.SCALAR else TokenType.OBJECT_KEY,
+                    TokenType.STRING if new_state == ParseState.PRIMITIVE else TokenType.OBJECT_KEY,
                     data=StringRef(start_index=i + 1, len=end_quote_index - i - 1),
                 )
                 i = end_quote_index
 
             case "t" | "n":
-                if ParseState.SCALAR not in possible_states:
+                if ParseState.PRIMITIVE not in possible_states:
                     yield Token(TokenType.ERROR)
                     raise ParseError(i)
 
@@ -187,10 +189,10 @@ def tokenize(buf: str) -> Generator[Token, None, None]:
                     yield Token(token_type=TokenType.ERROR)
                     raise ParseError(i)
 
-                new_state = ParseState.SCALAR
+                new_state = ParseState.PRIMITIVE
                 i += 3
             case "f":
-                if ParseState.SCALAR not in possible_states:
+                if ParseState.PRIMITIVE not in possible_states:
                     yield Token(TokenType.ERROR)
                     raise ParseError(i)
 
@@ -205,17 +207,17 @@ def tokenize(buf: str) -> Generator[Token, None, None]:
                     yield Token(token_type=TokenType.ERROR, data=None)
                     raise ParseError(i)
 
-                new_state = ParseState.SCALAR
+                new_state = ParseState.PRIMITIVE
                 i += 4
             case "-" | "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9":
-                if ParseState.SCALAR not in possible_states:
+                if ParseState.PRIMITIVE not in possible_states:
                     yield Token(TokenType.ERROR)
                     raise ParseError(i)
 
-                end_num_index = parse_number(buf, i)
+                end_num_index = find_end_num_index(buf, i)
                 yield Token(token_type=TokenType.NUMBER, data=StringRef(start_index=i, len=end_num_index - i))
 
-                new_state = ParseState.SCALAR
+                new_state = ParseState.PRIMITIVE
                 i = end_num_index - 1
             case " " | "\n" | "\t" | "\r":
                 new_state = current_state[0]
@@ -234,7 +236,7 @@ def tokenize(buf: str) -> Generator[Token, None, None]:
         raise ParseError(i)
 
 
-def parse_string(buf: str, start: int) -> int:
+def find_end_quote_index(buf: str, start: int) -> int:
     i = start
     while i < len(buf):
         char = buf[i]
@@ -255,7 +257,7 @@ def parse_string(buf: str, start: int) -> int:
     return -1
 
 
-def parse_number(buf: str, start: int) -> int:
+def find_end_num_index(buf: str, start: int) -> int:
     # TODO: Maybe actually validate the number. Progress in the commented out code below.
     i = start
     while i < len(buf):
@@ -283,7 +285,6 @@ def parse_number(buf: str, start: int) -> int:
 #    i = start
 #
 #    negative = False
-#    breakpoint()
 #    while i < len(buf):
 #        char = buf[i]
 #        if i == 0:

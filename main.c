@@ -54,7 +54,25 @@ int main(int argc, char **argv) {
 		case TOKEN_TYPE_ARRAY_END:
 			printf("array end\n");
             break;
+		case TOKEN_TYPE_STRING:
+			print(newString("string\n"));
+            printRefString(wholeBufferStr, t.data);
+	        print(newString("\n"));
+            break;
+		case TOKEN_TYPE_TRUE:
+			printf("true\n");
+            break;
+		case TOKEN_TYPE_FALSE:
+			printf("false\n");
+            break;
+		case TOKEN_TYPE_NULL:
+			printf("null\n");
+            break;
+		case TOKEN_TYPE_EOF:
+			printf("eof\n");
+			goto afterLoop;
 		case TOKEN_TYPE_ERROR:
+			printf("error\n");
 			goto afterLoop;
 		default:
 			goto afterLoop;
