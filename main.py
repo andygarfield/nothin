@@ -27,11 +27,6 @@ class Container(int, Enum):
     OBJECT = 1
 
 
-class ArrayOperation(int, Enum):
-    POP = 0
-    APPEND = 1
-
-
 valid_new_states: dict[
     tuple[ParseState, Container | None],
     set[ParseState],
@@ -96,11 +91,16 @@ def main():
     with open("/Users/andy/Downloads/twitter.json") as f:
         buf = f.read()
     # for buf in ["]:
-    for t in tokenize(buf):
-        if isinstance(t.data, StringRef):
-            print(f"{t.token_type} - `{buf[t.data.start_index:t.data.start_index+t.data.len]}`")
-        else:
-            print(t)
+    t_count = 0
+    for token in tokenize(buf):
+        print(token)
+        t_count += 1
+
+    print(t_count)
+    # if isinstance(t.data, StringRef):
+    #    print(f"{t.token_type} - `{buf[t.data.start_index:t.data.start_index+t.data.len]}`")
+    # else:
+    #    print(t)
 
 
 def tokenize(buf: str) -> Generator[Token, None, None]:

@@ -6,6 +6,8 @@ typedef struct {
 	u64 len;
 } String;
 
+// RefString is a reference to a string in a buffer. The `start` field is the
+// first index of the string, and `len` is the string's length.
 typedef struct {
 	u64 start;
 	u64 len;

@@ -41,7 +41,7 @@
  */
 #define MAP_FAILED ((void *)-1) /* [MF|SHM] mmap failed */
 
-internal void *mmap(void *addr, u64 len, i64 prot, i64 flags, i64 fd, u64 offset) {
+internal void *mmap(void *addr, u64 len, s64 prot, s64 flags, s64 fd, u64 offset) {
 	return (u64 *)syscall6(addr, UINT2VOIDP(len), INT2VOIDP(prot), INT2VOIDP(flags), INT2VOIDP(fd),
 			       UINT2VOIDP(offset), (void *)SYSCALL_MMAP);
 }

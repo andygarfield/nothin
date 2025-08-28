@@ -8,6 +8,6 @@
 #define SYSCALL_READ 0x0
 #endif
 
-internal i64 read_(i64 fd, void *buf, u64 count) {
-	return (i64)syscall5(INT2VOIDP(fd), (void *)buf, UINT2VOIDP(count), 0, 0, (void *)SYSCALL_READ);
+internal s64 read_(s64 fd, void *buf, u64 count) {
+	return (s64)syscall5(INT2VOIDP(fd), (void *)buf, UINT2VOIDP(count), 0, 0, (void *)SYSCALL_READ);
 }

@@ -7,4 +7,5 @@
 #include "syscall/write.c"
 #include "string.c"
 #include "alloc.c"
+#include "json.c"
 #include "main.c"
