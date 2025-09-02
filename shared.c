@@ -14,11 +14,8 @@ typedef uint8_t u8;
 
 #define UINT2VOIDP(i) (void *)(u64)(i)
 #define INT2VOIDP(i) (void *)(s64)(i)
+#define VOL_UINT2VOIDP(i) (volatile void *)(u64)(i)
+#define VOL_INT2VOIDP(i) (volatile void *)(s64)(i)
 
-void sleepytime();
-
-void sleepALot() {
-	for (u64 i = 0; i < 100000000; i++) {
-		sleepytime();
-	}
-}
+#define false 0
+#define true 1

@@ -2,9 +2,6 @@
 #include "root.unity.h"
 #include <stdio.h>
 
-#define false 0
-#define true 1
-
 int main(int argc, char **argv) {
 	// 2^25 pages or 128GiB (the OS shouldn't allocate this entire chunk for real
 	// unless we actually access it)
@@ -43,16 +40,16 @@ int main(int argc, char **argv) {
 		t = jsonNext(&r);
 		switch (t.tokenType) {
 		case TOKEN_TYPE_OBJECT_START:
-			printf("object start\n");
+			printChar("object start\n");
             break;
 		case TOKEN_TYPE_OBJECT_END:
-			printf("object end\n");
+			printChar("object end\n");
             break;
 		case TOKEN_TYPE_ARRAY_START:
-			printf("array start\n");
+			printChar("array start\n");
             break;
 		case TOKEN_TYPE_ARRAY_END:
-			printf("array end\n");
+			printChar("array end\n");
             break;
 		case TOKEN_TYPE_STRING:
 			print(newString("string\n"));
@@ -60,26 +57,26 @@ int main(int argc, char **argv) {
 	        print(newString("\n"));
             break;
 		case TOKEN_TYPE_TRUE:
-			printf("true\n");
+			printChar("true\n");
             break;
 		case TOKEN_TYPE_FALSE:
-			printf("false\n");
+			printChar("false\n");
             break;
 		case TOKEN_TYPE_NULL:
-			printf("null\n");
+			printChar("null\n");
             break;
 		case TOKEN_TYPE_EOF:
-			printf("eof\n");
+			printChar("eof\n");
 			goto afterLoop;
 		case TOKEN_TYPE_ERROR:
-			printf("error\n");
+			printChar("error\n");
 			goto afterLoop;
 		default:
 			goto afterLoop;
 		}
 	}
 afterLoop:
-	printf("end\n");
+	printChar("end\n");
 	print(newString(""));
 	return 0;
 }

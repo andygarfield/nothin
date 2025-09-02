@@ -1,5 +1,8 @@
 #pragma once
 #include "root.unity.h"
 
-volatile void *syscall5(void *arg1, void *arg2, void *arg3, void *arg4, void *arg5, void *number);
-volatile void *syscall6(void *arg1, void *arg2, void *arg3, void *arg4, void *arg5, void *arg6, void *number);
+s64 syscall5(const void *arg1, const void *arg2, const void *arg3, const void *arg4, const void *arg5,
+			const void *number);
+
+void *syscall6(const void *arg1, const void *arg2, const void *arg3, const void *arg4, const void *arg5,
+			const void *arg6, const void *number);

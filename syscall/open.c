@@ -12,6 +12,6 @@
 #define O_WRONLY 0x0001 /* open for writing only */
 #define O_RDWR 0x0002	/* open for reading and writing */
 
-internal u64 open_(const char *filename, s64 flags, s64 mode) {
-	return (u64)syscall5((void *)filename, INT2VOIDP(flags), INT2VOIDP(mode), 0, 0, (void *)SYSCALL_OPEN);
+internal s64 open_(const char *filename, s64 flags, s64 mode) {
+	return syscall5((const void *)filename, INT2VOIDP(flags), INT2VOIDP(mode), 0, 0, (void *)SYSCALL_OPEN);
 }

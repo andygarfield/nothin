@@ -30,8 +30,8 @@ typedef enum {
 } JsonTokenType;
 
 typedef struct {
-	JsonTokenType tokenType;
 	RefString data;
+	JsonTokenType tokenType;
 } JsonToken;
 
 typedef struct {
@@ -85,7 +85,50 @@ u64 findEndQuoteIndex(String s, u64 startIndex) {
 	return 0;
 }
 
-u8 stringsAreEqual(char *a, char *b, u64 len) {
+// findEndNumberIndex finds the index of the last character in a JSON number. This will eventually need to be replaced
+// by a function which validates a number
+u64 findEndNumberIndex(String s, u64 startIndex) {
+	u64 i = startIndex;
+	while (i > s.len) {
+		char c = s.buffer[i];
+		// 0 through 9
+		if (c >= 48 && c <= 57) {
+			i++;
+			continue;
+		}
+		// decimal point "."
+		else if (c == 46) {
+			i++;
+			continue;
+		}
+		// negative sign "-"
+		else if (c == 45) {
+			i++;
+			continue;
+		}
+		// positive sign "+"
+		else if (c == 43) {
+			i++;
+			continue;
+		}
+		// "e"
+		else if (c == 101) {
+			i++;
+			continue;
+		}
+		// "E"
+		else if (c == 69) {
+			i++;
+			continue;
+		} else {
+			break;
+		}
+	}
+
+	return i;
+}
+
+u8 charArraysAreEqual(char *a, char *b, u64 len) {
 	for (u64 i = 0; i < len; i++) {
 		if (a[i] != b[i]) {
 			return 0;
@@ -96,18 +139,22 @@ u8 stringsAreEqual(char *a, char *b, u64 len) {
 
 JsonToken jsonNext(JsonStringReader *r) {
 	// TODO: give error details
-	if (r->containerStackPos > 127) {
-		return (JsonToken){.tokenType = TOKEN_TYPE_ERROR};
-	}
+
 	// String str = {.buffer = (char *)fileBuffer, .len = readBytes};
 	// u64 startIndex = fileBuffer - startPos;
 	// u64 j = startIndex;
 	for (; r->stringPos < r->string.len; r->stringPos++) {
 		// printf("string pos %llu\n", r->stringPos);
 		char c = r->string.buffer[r->stringPos];
+		// print(newString("\""));
+		// print((String){.buffer = &c, .len = 1});
+		// print(newString("\"\n"));
 
 		switch (c) {
 		case '{':
+			if (r->containerStackPos == 127) {
+				return (JsonToken){.tokenType = TOKEN_TYPE_ERROR};
+			}
 			r->parseState = PARSE_STATE_OBJECT_START;
 			r->stringPos++;
 			return (JsonToken){.tokenType = TOKEN_TYPE_OBJECT_START};
@@ -116,6 +163,9 @@ JsonToken jsonNext(JsonStringReader *r) {
 			r->stringPos++;
 			return (JsonToken){.tokenType = TOKEN_TYPE_OBJECT_END};
 		case '[':
+			if (r->containerStackPos == 127) {
+				return (JsonToken){.tokenType = TOKEN_TYPE_ERROR};
+			}
 			r->parseState = PARSE_STATE_ARRAY_START;
 			r->stringPos++;
 			return (JsonToken){.tokenType = TOKEN_TYPE_ARRAY_START};
@@ -132,6 +182,7 @@ JsonToken jsonNext(JsonStringReader *r) {
 			r->stringPos++;
 			break;
 		case '"':
+			printChar("found quote");
 			r->parseState = PARSE_STATE_SCALAR;
 			u64 endQuoteIndex = findEndQuoteIndex(r->string, r->stringPos);
 			if (endQuoteIndex == 0) {
@@ -149,10 +200,10 @@ JsonToken jsonNext(JsonStringReader *r) {
 			}
 
 			char *b = r->string.buffer + r->stringPos;
-			if (stringsAreEqual(b, "true", 4)) {
+			if (charArraysAreEqual(b, "true", 4)) {
 				r->stringPos += 4;
 				return (JsonToken){.tokenType = TOKEN_TYPE_TRUE};
-			} else if (stringsAreEqual(b, "null", 4)) {
+			} else if (charArraysAreEqual(b, "null", 4)) {
 				r->stringPos += 4;
 				return (JsonToken){.tokenType = TOKEN_TYPE_NULL};
 			} else {
@@ -164,7 +215,7 @@ JsonToken jsonNext(JsonStringReader *r) {
 			}
 
 			b = r->string.buffer + r->stringPos;
-			if (stringsAreEqual(b, "false", 5)) {
+			if (charArraysAreEqual(b, "false", 5)) {
 				r->stringPos += 5;
 				return (JsonToken){.tokenType = TOKEN_TYPE_FALSE};
 			} else {
@@ -174,8 +225,24 @@ JsonToken jsonNext(JsonStringReader *r) {
 		case '\n':
 		case '\t':
 		case '\r':
-			r->stringPos++;
-            break;
+			break;
+		case '-':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			r->parseState = PARSE_STATE_SCALAR;
+			u64 endNumIndex = findEndNumberIndex(r->string, r->stringPos);
+
+			startPos = r->stringPos;
+			r->stringPos = endNumIndex + 1;
+			return (JsonToken){.tokenType = TOKEN_TYPE_NUMBER,
+					   .data = (RefString){.start = startPos, .len = endNumIndex - startPos - 1}};
 		default:
 			return (JsonToken){.tokenType = TOKEN_TYPE_ERROR};
 		}

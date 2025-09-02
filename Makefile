@@ -1,5 +1,5 @@
 .POSIX:
-CLANG_FLAGS = -std=c99 -O0 -Wall -Werror -nostdlib -lSystem -fdelete-null-pointer-checks
+CLANG_FLAGS = -std=c99 -O3 -Wall -Werror -nostdlib -lSystem -fdelete-null-pointer-checks -Weverything
 CLANG_DB_FLAGS = -std=c99 -O0 -Wall -Werror -g
 
 GCC_FLAGS = -s -O3 -fdata-sections -Wl,-gc-sections -Wl,--gc-sections \

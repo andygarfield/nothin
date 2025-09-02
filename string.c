@@ -19,15 +19,13 @@ typedef struct {
 } RefStringArray;
 
 void appendRefString(RefStringArray *a, RefString item) {
-    a->p[a->len] = item;
-    a->len++;
+	a->p[a->len] = item;
+	a->len++;
 }
 
 internal void print(String s) { write_(1, (void *)s.buffer, s.len); }
 
-internal void printRefString(String s, RefString r) {
-    write_(1, (void *)s.buffer + r.start, r.len);
-}
+internal void printRefString(String s, RefString r) { write_(1, (void *)s.buffer + r.start, r.len); }
 
 internal u64 strlen(char const *str) {
 	char const *p;
@@ -40,3 +38,5 @@ internal String newString(char *s) {
 	String str = {.buffer = s, .len = strlen(s)};
 	return str;
 }
+
+internal void printChar(char *s) { print(newString(s)); }
