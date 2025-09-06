@@ -1,6 +1,9 @@
 #pragma once
 #include "root.unity.h"
 
+// Max 1GB string
+#define MAX_STRING_SIZE (1 << 30)
+
 typedef struct {
 	char *buffer;
 	u64 len;
@@ -18,20 +21,23 @@ typedef struct {
 	u64 len;
 } RefStringArray;
 
-void appendRefString(RefStringArray *a, RefString item) {
-	a->p[a->len] = item;
-	a->len++;
-}
+// void appendRefString(RefStringArray *a, RefString item) {
+//	a->p[a->len] = item;
+//	a->len++;
+// }
 
 internal void print(String s) { write_(1, (void *)s.buffer, s.len); }
 
-internal void printRefString(String s, RefString r) { write_(1, (void *)s.buffer + r.start, r.len); }
+internal void printRefString(String s, RefString r) { write_(1, (void *)((char *)s.buffer + r.start), r.len); }
 
 internal u64 strlen(char const *str) {
-	char const *p;
-	for (p = str; *p; ++p)
-		;
-	return p - str;
+    u64 i;
+	for (i = 0; i < MAX_STRING_SIZE; ++i) {
+		if (str[i] == 0) {
+			break;
+		}
+	}
+	return i;
 }
 
 internal String newString(char *s) {

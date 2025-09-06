@@ -3,6 +3,8 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
+    (void)argc;
+    
 	// 2^25 pages or 128GiB (the OS shouldn't allocate this entire chunk for real
 	// unless we actually access it)
 	// u64 pages = 33554432;
@@ -52,9 +54,14 @@ int main(int argc, char **argv) {
 			printChar("array end\n");
             break;
 		case TOKEN_TYPE_STRING:
-			print(newString("string\n"));
+			printChar("string\n");
             printRefString(wholeBufferStr, t.data);
-	        print(newString("\n"));
+	        printChar("\n");
+            break;
+		case TOKEN_TYPE_NUMBER:
+			print(newString("number\n"));
+            printRefString(wholeBufferStr, t.data);
+            printf("\npos %llu - len %llu\n", t.data.start, t.data.len);
             break;
 		case TOKEN_TYPE_TRUE:
 			printChar("true\n");
@@ -76,7 +83,5 @@ int main(int argc, char **argv) {
 		}
 	}
 afterLoop:
-	printChar("end\n");
-	print(newString(""));
 	return 0;
 }

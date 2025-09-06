@@ -85,11 +85,12 @@ u64 findEndQuoteIndex(String s, u64 startIndex) {
 	return 0;
 }
 
-// findEndNumberIndex finds the index of the last character in a JSON number. This will eventually need to be replaced
-// by a function which validates a number
+// findEndNumberIndex finds the index of the last character in a JSON number.
+// This will eventually need to be replaced by a function which validates a
+// number
 u64 findEndNumberIndex(String s, u64 startIndex) {
 	u64 i = startIndex;
-	while (i > s.len) {
+	while (i < s.len) {
 		char c = s.buffer[i];
 		// 0 through 9
 		if (c >= 48 && c <= 57) {
@@ -140,15 +141,8 @@ u8 charArraysAreEqual(char *a, char *b, u64 len) {
 JsonToken jsonNext(JsonStringReader *r) {
 	// TODO: give error details
 
-	// String str = {.buffer = (char *)fileBuffer, .len = readBytes};
-	// u64 startIndex = fileBuffer - startPos;
-	// u64 j = startIndex;
 	for (; r->stringPos < r->string.len; r->stringPos++) {
-		// printf("string pos %llu\n", r->stringPos);
 		char c = r->string.buffer[r->stringPos];
-		// print(newString("\""));
-		// print((String){.buffer = &c, .len = 1});
-		// print(newString("\"\n"));
 
 		switch (c) {
 		case '{':
@@ -182,7 +176,6 @@ JsonToken jsonNext(JsonStringReader *r) {
 			r->stringPos++;
 			break;
 		case '"':
-			printChar("found quote");
 			r->parseState = PARSE_STATE_SCALAR;
 			u64 endQuoteIndex = findEndQuoteIndex(r->string, r->stringPos);
 			if (endQuoteIndex == 0) {
@@ -227,6 +220,7 @@ JsonToken jsonNext(JsonStringReader *r) {
 		case '\r':
 			break;
 		case '-':
+		case '0':
 		case '1':
 		case '2':
 		case '3':
@@ -239,45 +233,20 @@ JsonToken jsonNext(JsonStringReader *r) {
 			r->parseState = PARSE_STATE_SCALAR;
 			u64 endNumIndex = findEndNumberIndex(r->string, r->stringPos);
 
+			// no starting numbers with 0 except if the number is
+			// literally "0" or a number between 0 and 1
+			if (c == '0' && endNumIndex - r->stringPos > 1 && r->string.buffer[r->stringPos + 1] != '.') {
+				return (JsonToken){.tokenType = TOKEN_TYPE_ERROR};
+			}
+
 			startPos = r->stringPos;
 			r->stringPos = endNumIndex + 1;
 			return (JsonToken){.tokenType = TOKEN_TYPE_NUMBER,
-					   .data = (RefString){.start = startPos, .len = endNumIndex - startPos - 1}};
+					   .data = (RefString){.start = startPos, .len = endNumIndex - startPos}};
 		default:
 			return (JsonToken){.tokenType = TOKEN_TYPE_ERROR};
 		}
-		//
-		// printf("%c\n", r->string.buffer[r->currentPos]);
-		//  switch (*j) {
-		//  case '\n':
-		//  case '\t':
-		//  case '\r':
-		//  case ' ':
-		//	continue;
-		//  case '"':
-		//	// TODO: add quote escaping
-		//	if (stringStart == -1) {
-		//		stringStart = j + 1;
-		//	} else {
-		//		RefString s = {.start = stringStart, .len = j - stringStart};
-
-		//		appendRefString(&a, s);
-
-		//		stringStart = -1;
-		//	}
-		// case '{':
-
-		// default:
-		//	break;
-		// }
 	}
 
-	// for (u64 i = 0; i < a.len; i++) {
-	//	RefString s = a.p[i];
-	//	// printf("start %lu; len %lu\n", s.start, s.len);
-	//	String js = {.buffer = startPos + s.start, .len = s.len};
-	//	print(js);
-	//	print(newString("\n"));
-	// }
 	return (JsonToken){.tokenType = TOKEN_TYPE_EOF};
 }
